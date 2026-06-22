@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Blog</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><a href="/">My Blog</a></h1>
+            <nav></nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="banners"></div>
+        <div id="posts"></div>
+        <div id="pagination" class="pagination"></div>
+        <div id="loading" class="loading">Loading posts...</div>
+    </main>
+
+    <script src="assets/js/api.js"></script>
+    <script>
+        let currentPage = 1;
+
+        function formatDateTime(dateStr) {
+            return new Date(dateStr).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        let bannerIndex = 0;
+        let bannerTimer = null;
+
+        function renderCarousel(banners) {
+            const container = document.getElementById('banners');
+            container.innerHTML = `
+                <div class="banner-carousel">
+                    <div class="banner-track">
+                        ${banners.map(b => `
+                            <div class="banner-slide">
+                                ${b.image_url ? `<img src="http://localhost:8000${b.image_url}" alt="${b.title}">` : ''}
+                                <div class="banner-slide-content">
+                                    <h3>${b.title}</h3>
+                                    <p>${b.content}</p>
+                                    <div class="meta">${formatDateTime(b.created_at)}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="banner-dots">
+                        ${banners.map((_, i) => `<button class="banner-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></button>`).join('')}
+                    </div>
+                </div>
+            `;
+
+            const track = container.querySelector('.banner-track');
+            const dots = container.querySelectorAll('.banner-dot');
+
+            function goTo(index) {
+                bannerIndex = index;
+                track.style.transform = `translateX(-${bannerIndex * 100}%)`;
+                dots.forEach((d, i) => d.classList.toggle('active', i === bannerIndex));
+            }
+
+            dots.forEach(dot => {
+                dot.addEventListener('click', () => {
+                    goTo(parseInt(dot.dataset.index));
+                    clearInterval(bannerTimer);
+                    bannerTimer = setInterval(next, 5000);
+                });
+            });
+
+            function next() { goTo((bannerIndex + 1) % banners.length); }
+
+            if (banners.length > 1) {
+                bannerTimer = setInterval(next, 5000);
+            }
+        }
+
+        async function loadBanners() {
+            try {
+                const banners = await getBanners();
+                const container = document.getElementById('banners');
+                if (banners.length === 0) { container.innerHTML = ''; return; }
+                renderCarousel(banners);
+            } catch (e) { /* ignore */ }
+        }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'long', day: 'numeric'
+            });
+        }
+
+        function stripHtml(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div.textContent || div.innerText || '';
+        }
+
+        function renderPosts(data) {
+            const container = document.getElementById('posts');
+            const pagination = document.getElementById('pagination');
+
+            if (data.data.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h2>No posts yet</h2><p>Check back later!</p></div>';
+                pagination.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = data.data.map(post => `
+                <article class="post-card">
+                    ${post.featured_image ? `<img src="http://localhost:8000${post.featured_image}" alt="${post.title}" class="featured-image">` : ''}
+                    <h2><a href="/post.html?slug=${post.slug}">${post.title}</a></h2>
+                    <div class="meta">${formatDate(post.published_at || post.created_at)} by ${post.author.name}</div>
+                    <div class="excerpt">${stripHtml(post.content).substring(0, 200)}...</div>
+                </article>
+            `).join('');
+
+            let pagHtml = '';
+            if (data.prev_page_url) {
+                pagHtml += `<a href="#" data-page="${data.current_page - 1}">Previous</a>`;
+            }
+            for (let i = 1; i <= data.last_page; i++) {
+                if (i === data.current_page) {
+                    pagHtml += `<span class="current">${i}</span>`;
+                } else {
+                    pagHtml += `<a href="#" data-page="${i}">${i}</a>`;
+                }
+            }
+            if (data.next_page_url) {
+                pagHtml += `<a href="#" data-page="${data.current_page + 1}">Next</a>`;
+            }
+            pagination.innerHTML = pagHtml;
+
+            pagination.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    currentPage = parseInt(e.target.dataset.page);
+                    loadPosts();
+                });
+            });
+        }
+
+        async function loadPosts() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('posts').innerHTML = '';
+            document.getElementById('pagination').innerHTML = '';
+
+            try {
+                const data = await getPosts(currentPage);
+                document.getElementById('loading').style.display = 'none';
+                renderPosts(data);
+            } catch (err) {
+                document.getElementById('loading').textContent = 'Failed to load posts.';
+            }
+        }
+
+        loadBanners();
+        loadPosts();
+    </script>
+</body>
+</html>

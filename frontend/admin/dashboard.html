@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+    <style>
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .dashboard-header h1 { font-size: 1.5rem; }
+        .admin-nav a { margin-left: 12px; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        th { background: #f8f9fa; font-weight: 600; font-size: 0.85rem; }
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; }
+        .status-published { background: #d4edda; color: #155724; }
+        .status-draft { background: #fff3cd; color: #856404; }
+        .actions a, .actions button { margin-right: 6px; font-size: 0.85rem; }
+
+        .section-title { font-size: 1.3rem; margin: 32px 0 16px; padding-top: 16px; border-top: 2px solid #e0e0e0; }
+        .banner-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 16px; display: flex; gap: 16px; align-items: flex-start; }
+        .banner-card img { width: 120px; max-height: 120px; object-fit: contain; border-radius: 4px; flex-shrink: 0; background: #f5f5f5; }
+        .banner-card .banner-info { flex: 1; }
+        .banner-card .banner-info h3 { margin-bottom: 4px; font-size: 1.1rem; }
+        .banner-card .banner-info p { color: #555; font-size: 0.9rem; margin-bottom: 4px; }
+        .banner-card .banner-info .meta { color: #888; font-size: 0.8rem; }
+        .banner-form { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+        .banner-form h3 { margin-bottom: 16px; }
+        .form-row { display: flex; gap: 16px; }
+        .form-row .form-group { flex: 1; }
+        .banner-image-preview { max-width: 200px; max-height: 120px; border-radius: 4px; margin-top: 8px; display: none; }
+
+        .login-overlay { max-width: 400px; margin: 80px auto; background: #fff; padding: 32px; border: 1px solid #e0e0e0; border-radius: 8px; }
+        .login-overlay h1 { text-align: center; margin-bottom: 24px; font-size: 1.5rem; }
+
+        .editor-section { margin-bottom: 32px; }
+        .editor-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 24px; }
+        .editor-card h3 { margin-bottom: 16px; }
+        #postEditor { height: 300px; }
+        .ql-editor { min-height: 250px; }
+        .image-preview { max-width: 200px; margin-top: 8px; border-radius: 4px; display: none; }
+        .admin-content { display: none; }
+        .toggle-editor-btn { margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loginView" class="login-overlay" style="display:none">
+            <h1>Admin Login</h1>
+            <div id="loginError" class="alert alert-danger" style="display:none"></div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="button" class="btn btn-primary" style="width:100%" onclick="handleLogin()">Login</button>
+        </div>
+
+        <div id="adminView" class="admin-content">
+            <div class="dashboard-header">
+                <h1>Dashboard</h1>
+                <div class="admin-nav">
+                    <span id="userName"></span>
+                    <button class="btn btn-success" onclick="openEditor()">New Post</button>
+                    <a href="#" onclick="handleLogout()" class="btn btn-secondary">Logout</a>
+                </div>
+            </div>
+
+            <div class="editor-section" id="editorSection" style="display:none">
+                <div class="editor-card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                        <h3 id="editorTitle">New Post</h3>
+                        <button class="btn btn-secondary" onclick="closeEditor()">Close</button>
+                    </div>
+                    <div id="postError" class="alert alert-danger" style="display:none"></div>
+                    <div class="form-group">
+                        <label for="postTitle">Title</label>
+                        <input type="text" id="postTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Content</label>
+                        <div id="postEditor"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="featuredImage">Featured Image URL</label>
+                            <input type="text" id="featuredImage" placeholder="Paste URL or upload below">
+                        </div>
+                        <div class="form-group">
+                            <label for="imageUpload">Or upload</label>
+                            <input type="file" id="imageUpload" accept="image/*">
+                            <img id="imagePreview" class="image-preview">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="publishedAt">Publish date & time</label>
+                        <input type="datetime-local" id="publishedAt">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="isPublished"> Published
+                        </label>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="savePost()">Save Post</button>
+                </div>
+            </div>
+
+            <h2 class="section-title">Posts</h2>
+            <div id="loading" class="loading">Loading posts...</div>
+            <div id="postsTable"></div>
+
+            <h2 class="section-title">Banners</h2>
+
+            <div class="banner-form" id="bannerForm">
+                <h3 id="bannerFormTitle">New Banner</h3>
+                <div id="bannerError" class="alert alert-danger" style="display:none"></div>
+                <div class="form-group">
+                    <label for="bannerTitle">Title</label>
+                    <input type="text" id="bannerTitle">
+                </div>
+                <div class="form-group">
+                    <label for="bannerContent">Content</label>
+                    <textarea id="bannerContent" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bannerImageUrl">Image URL</label>
+                        <input type="text" id="bannerImageUrl" placeholder="Paste URL or upload below">
+                    </div>
+                    <div class="form-group">
+                        <label for="bannerImageUpload">Or upload</label>
+                        <input type="file" id="bannerImageUpload" accept="image/*">
+                        <img id="bannerImagePreview" class="banner-image-preview">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="bannerIsActive" checked> Active
+                    </label>
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn btn-primary" onclick="saveBanner()">Save Banner</button>
+                    <button type="button" class="btn btn-secondary" onclick="cancelBannerEdit()" style="display:none" id="cancelBannerBtn">Cancel</button>
+                </div>
+            </div>
+
+            <div id="bannersList"></div>
+            <div id="bannersLoading" class="loading">Loading banners...</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script>
+        const quill = new Quill('#postEditor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ header: [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    ['blockquote', 'code-block'],
+                    ['link', 'image'],
+                    ['clean'],
+                ],
+            },
+        });
+
+        let editingPostId = null;
+
+        function showLogin() {
+            document.getElementById('loginView').style.display = 'block';
+            document.getElementById('adminView').style.display = 'none';
+        }
+
+        function showAdmin() {
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('adminView').style.display = 'block';
+        }
+
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                const user = getUser();
+                if (user) document.getElementById('userName').textContent = `Welcome, ${user.name}`;
+                showAdmin();
+                loadPosts();
+                loadBanners();
+            } else {
+                showLogin();
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('loginError');
+            try {
+                const data = await login(email, password);
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                errorEl.style.display = 'none';
+                checkAuth();
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.style.display = 'block';
+            }
+        }
+
+        async function handleLogout() {
+            try { await logout(); } catch (e) {}
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            checkAuth();
+        }
+
+        // ─── Post Editor ─────────────────────────────────────────────
+
+        function openEditor(id) {
+            editingPostId = id || null;
+            document.getElementById('editorTitle').textContent = id ? 'Edit Post' : 'New Post';
+            document.getElementById('editorSection').style.display = 'block';
+            document.getElementById('postError').style.display = 'none';
+            if (id) loadPostIntoEditor(id);
+            else resetEditor();
+            window.scrollTo({ top: document.getElementById('editorSection').offsetTop - 20, behavior: 'smooth' });
+        }
+
+        function closeEditor() {
+            document.getElementById('editorSection').style.display = 'none';
+            editingPostId = null;
+        }
+
+        function resetEditor() {
+            document.getElementById('postTitle').value = '';
+            quill.root.innerHTML = '';
+            document.getElementById('featuredImage').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('imageUpload').value = '';
+            document.getElementById('isPublished').checked = false;
+            document.getElementById('publishedAt').value = '';
+        }
+
+        async function loadPostIntoEditor(id) {
+            try {
+                const post = await getAdminPost(id);
+                document.getElementById('postTitle').value = post.title;
+                quill.root.innerHTML = post.content;
+                document.getElementById('featuredImage').value = post.featured_image || '';
+                if (post.featured_image) {
+                    document.getElementById('imagePreview').src = 'http://localhost:8000' + post.featured_image;
+                    document.getElementById('imagePreview').style.display = 'block';
+                }
+                document.getElementById('publishedAt').value = post.published_at ? post.published_at.substring(0, 16) : '';
+                document.getElementById('isPublished').checked = post.is_published;
+                if (post.published_at) {
+                    const d = new Date(post.published_at);
+                    const pad = n => String(n).padStart(2, '0');
+                    document.getElementById('publishedAt').value =
+                        `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                } else {
+                    document.getElementById('publishedAt').value = '';
+                }
+            } catch (err) {
+                document.getElementById('postError').textContent = 'Failed to load post.';
+                document.getElementById('postError').style.display = 'block';
+            }
+        }
+
+        document.getElementById('imageUpload').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const data = await uploadImage(file);
+                document.getElementById('featuredImage').value = data.url;
+                document.getElementById('imagePreview').src = 'http://localhost:8000' + data.url;
+                document.getElementById('imagePreview').style.display = 'block';
+            } catch (err) {
+                alert('Upload failed: ' + err.message);
+            }
+        });
+
+        async function savePost() {
+            const pubInput = document.getElementById('publishedAt').value;
+            const data = {
+                title: document.getElementById('postTitle').value,
+                content: quill.root.innerHTML,
+                featured_image: document.getElementById('featuredImage').value || null,
+                published_at: pubInput ? new Date(pubInput).toISOString() : null,
+                is_published: document.getElementById('isPublished').checked,
+                published_at: document.getElementById('publishedAt').value
+                    ? new Date(document.getElementById('publishedAt').value).toISOString()
+                    : null,
+            };
+
+            if (!data.title) {
+                document.getElementById('postError').textContent = 'Title is required.';
+                document.getElementById('postError').style.display = 'block';
+                return;
+            }
+
+            try {
+                if (editingPostId) {
+                    await updatePost(editingPostId, data);
+                } else {
+                    await createPost(data);
+                }
+                closeEditor();
+                loadPosts();
+            } catch (err) {
+                document.getElementById('postError').textContent = err.message;
+                document.getElementById('postError').style.display = 'block';
+            }
+        }
+
+        // ─── Post Table ──────────────────────────────────────────────
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric'
+            });
+        }
+
+        async function loadPosts() {
+            document.getElementById('loading').style.display = 'block';
+            try {
+                const posts = await getAdminPosts();
+                document.getElementById('loading').style.display = 'none';
+                if (posts.length === 0) {
+                    document.getElementById('postsTable').innerHTML =
+                        '<div class="empty-state"><h2>No posts yet</h2><p><button class="btn btn-success" onclick="openEditor()">Create your first post</button></p></div>';
+                    return;
+                }
+                document.getElementById('postsTable').innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Author</th>
+                                <th>Status</th>
+                                <th>Published</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${posts.map(post => `
+                                <tr>
+                                    <td>${post.title}</td>
+                                    <td>${post.author?.name || 'Unknown'}</td>
+                                    <td><span class="status-badge ${post.is_published ? 'status-published' : 'status-draft'}">${post.is_published ? 'Published' : 'Draft'}</span></td>
+                                    <td>${formatDate(post.published_at || post.created_at)}</td>
+                                    <td class="actions">
+                                        <button onclick="openEditor(${post.id})" class="btn btn-primary btn-sm" style="padding:4px 10px;font-size:0.8rem">Edit</button>
+                                        <button onclick="handleToggle(${post.id})" class="btn btn-secondary btn-sm" style="padding:4px 10px;font-size:0.8rem">${post.is_published ? 'Draft' : 'Publish'}</button>
+                                        <button onclick="handleDelete(${post.id})" class="btn btn-danger btn-sm" style="padding:4px 10px;font-size:0.8rem">Delete</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) {
+                document.getElementById('loading').textContent = 'Failed to load posts.';
+            }
+        }
+
+        async function handleToggle(id) {
+            if (!confirm('Toggle publish status?')) return;
+            try {
+                await togglePublish(id);
+                loadPosts();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function handleDelete(id) {
+            if (!confirm('Delete this post permanently?')) return;
+            try {
+                await deletePost(id);
+                loadPosts();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // ─── Banner Management ───────────────────────────────────────
+
+        let editingBannerId = null;
+
+        document.getElementById('bannerImageUpload').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const data = await uploadImage(file);
+                document.getElementById('bannerImageUrl').value = data.url;
+                document.getElementById('bannerImagePreview').src = 'http://localhost:8000' + data.url;
+                document.getElementById('bannerImagePreview').style.display = 'block';
+            } catch (err) {
+                alert('Upload failed: ' + err.message);
+            }
+        });
+
+        function formatDateTime(dateStr) {
+            return new Date(dateStr).toLocaleString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        async function loadBanners() {
+            document.getElementById('bannersLoading').style.display = 'block';
+            try {
+                const banners = await getAdminBanners();
+                document.getElementById('bannersLoading').style.display = 'none';
+                if (banners.length === 0) {
+                    document.getElementById('bannersList').innerHTML = '<div class="empty-state"><p>No banners yet. Create one above.</p></div>';
+                    return;
+                }
+                document.getElementById('bannersList').innerHTML = banners.map(b => `
+                    <div class="banner-card">
+                        ${b.image_url ? `<img src="http://localhost:8000${b.image_url}" alt="${b.title}">` : ''}
+                        <div class="banner-info">
+                            <h3>${b.title}</h3>
+                            <p>${b.content}</p>
+                            <div class="meta">
+                                ${formatDateTime(b.created_at)}
+                                &middot; <span class="status-badge ${b.is_active ? 'status-published' : 'status-draft'}">${b.is_active ? 'Active' : 'Inactive'}</span>
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <button onclick="editBanner(${b.id})" class="btn btn-primary btn-sm" style="padding:4px 10px;font-size:0.8rem">Edit</button>
+                            <button onclick="deleteBannerItem(${b.id})" class="btn btn-danger btn-sm" style="padding:4px 10px;font-size:0.8rem">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                document.getElementById('bannersLoading').textContent = 'Failed to load banners.';
+            }
+        }
+
+        function resetBannerForm() {
+            editingBannerId = null;
+            document.getElementById('bannerFormTitle').textContent = 'New Banner';
+            document.getElementById('bannerTitle').value = '';
+            document.getElementById('bannerContent').value = '';
+            document.getElementById('bannerImageUrl').value = '';
+            document.getElementById('bannerImagePreview').style.display = 'none';
+            document.getElementById('bannerImageUpload').value = '';
+            document.getElementById('bannerIsActive').checked = true;
+            document.getElementById('cancelBannerBtn').style.display = 'none';
+            document.getElementById('bannerError').style.display = 'none';
+        }
+
+        async function editBanner(id) {
+            try {
+                const banners = await getAdminBanners();
+                const banner = banners.find(b => b.id === id);
+                if (!banner) return;
+                editingBannerId = banner.id;
+                document.getElementById('bannerFormTitle').textContent = 'Edit Banner';
+                document.getElementById('bannerTitle').value = banner.title;
+                document.getElementById('bannerContent').value = banner.content;
+                document.getElementById('bannerImageUrl').value = banner.image_url || '';
+                if (banner.image_url) {
+                    document.getElementById('bannerImagePreview').src = 'http://localhost:8000' + banner.image_url;
+                    document.getElementById('bannerImagePreview').style.display = 'block';
+                } else {
+                    document.getElementById('bannerImagePreview').style.display = 'none';
+                }
+                document.getElementById('bannerIsActive').checked = banner.is_active;
+                document.getElementById('cancelBannerBtn').style.display = 'inline-block';
+                document.getElementById('bannerError').style.display = 'none';
+                window.scrollTo({ top: document.getElementById('bannerForm').offsetTop, behavior: 'smooth' });
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function cancelBannerEdit() { resetBannerForm(); }
+
+        async function saveBanner() {
+            const data = {
+                title: document.getElementById('bannerTitle').value,
+                content: document.getElementById('bannerContent').value,
+                image_url: document.getElementById('bannerImageUrl').value || null,
+                is_active: document.getElementById('bannerIsActive').checked,
+            };
+            if (!data.title || !data.content) {
+                document.getElementById('bannerError').textContent = 'Title and content are required.';
+                document.getElementById('bannerError').style.display = 'block';
+                return;
+            }
+            try {
+                if (editingBannerId) {
+                    await updateBanner(editingBannerId, data);
+                } else {
+                    await createBanner(data);
+                }
+                resetBannerForm();
+                loadBanners();
+            } catch (err) {
+                document.getElementById('bannerError').textContent = err.message;
+                document.getElementById('bannerError').style.display = 'block';
+            }
+        }
+
+        async function deleteBannerItem(id) {
+            if (!confirm('Delete this banner?')) return;
+            try {
+                await deleteBanner(id);
+                loadBanners();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>

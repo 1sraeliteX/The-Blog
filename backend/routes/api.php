@@ -1,15 +1,19 @@
 <?php
 
 use App\Http\Controllers\Api\AdminBannerController;
+use App\Http\Controllers\Api\AdminCommentController;
 use App\Http\Controllers\Api\AdminPostController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BannerController;
+use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\PostController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('posts', [PostController::class, 'index']);
 Route::get('posts/{slug}', [PostController::class, 'show']);
+Route::get('posts/{slug}/comments', [CommentController::class, 'index']);
+Route::post('posts/{slug}/comments', [CommentController::class, 'store']);
 Route::get('banners', [BannerController::class, 'index']);
 
 // Admin routes
@@ -30,4 +34,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('admin/banners', [AdminBannerController::class, 'store']);
     Route::put('admin/banners/{id}', [AdminBannerController::class, 'update']);
     Route::delete('admin/banners/{id}', [AdminBannerController::class, 'destroy']);
+
+    Route::get('admin/comments', [AdminCommentController::class, 'index']);
+    Route::put('admin/comments/{id}/approve', [AdminCommentController::class, 'approve']);
+    Route::delete('admin/comments/{id}', [AdminCommentController::class, 'destroy']);
 });

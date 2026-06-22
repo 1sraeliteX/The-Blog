@@ -130,3 +130,32 @@ function deleteBanner(id) {
         method: 'DELETE',
     });
 }
+
+// Public comment API
+function getComments(slug) {
+    return apiRequest(`/posts/${slug}/comments`);
+}
+
+function submitComment(slug, data) {
+    return apiRequest(`/posts/${slug}/comments`, {
+        method: 'POST',
+        body: data,
+    });
+}
+
+// Admin comment API
+function getAdminComments() {
+    return apiRequest('/admin/comments');
+}
+
+function approveComment(id) {
+    return apiRequest(`/admin/comments/${id}/approve`, {
+        method: 'PUT',
+    });
+}
+
+function deleteComment(id) {
+    return apiRequest(`/admin/comments/${id}`, {
+        method: 'DELETE',
+    });
+}

@@ -150,6 +150,10 @@
 
             <div id="bannersList"></div>
             <div id="bannersLoading" class="loading">Loading banners...</div>
+
+            <h2 class="section-title">Comments</h2>
+            <div id="comments-loading" class="loading">Loading comments...</div>
+            <div id="commentsTable"></div>
         </div>
     </div>
 
@@ -191,6 +195,7 @@
                 showAdmin();
                 loadPosts();
                 loadBanners();
+                loadComments();
             } else {
                 showLogin();
             }
@@ -518,6 +523,72 @@
                 alert(err.message);
             }
         }
+
+        // ─── Comments Management ────────────────────────────────────
+
+        async function loadComments() {
+            document.getElementById('comments-loading').style.display = 'block';
+            try {
+                const comments = await getAdminComments();
+                document.getElementById('comments-loading').style.display = 'none';
+                if (comments.length === 0) {
+                    document.getElementById('commentsTable').innerHTML =
+                        '<div class="empty-state"><p>No comments yet.</p></div>';
+                    return;
+                }
+                document.getElementById('commentsTable').innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Post</th>
+                                <th>Name</th>
+                                <th>Comment</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${comments.map(c => `
+                                <tr>
+                                    <td>${c.post?.title || 'Unknown'}</td>
+                                    <td>${c.name}</td>
+                                    <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.content}</td>
+                                    <td>${formatDateTime(c.created_at)}</td>
+                                    <td><span class="status-badge ${c.is_approved ? 'status-published' : 'status-draft'}">${c.is_approved ? 'Approved' : 'Pending'}</span></td>
+                                    <td class="actions">
+                                        <button onclick="handleApprove(${c.id})" class="btn btn-secondary btn-sm" style="padding:4px 10px;font-size:0.8rem">${c.is_approved ? 'Unapprove' : 'Approve'}</button>
+                                        <button onclick="handleDeleteComment(${c.id})" class="btn btn-danger btn-sm" style="padding:4px 10px;font-size:0.8rem">Delete</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) {
+                document.getElementById('comments-loading').textContent = 'Failed to load comments.';
+            }
+        }
+
+        async function handleApprove(id) {
+            try {
+                await approveComment(id);
+                loadComments();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function handleDeleteComment(id) {
+            if (!confirm('Delete this comment?')) return;
+            try {
+                await deleteComment(id);
+                loadComments();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
 
         checkAuth();
     </script>

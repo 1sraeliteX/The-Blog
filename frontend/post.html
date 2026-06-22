@@ -10,7 +10,7 @@
     <header>
         <div class="container">
             <h1><a href="/">My Blog</a></h1>
-            <nav></nav>
+            <nav><a href="/admin/dashboard.html">Admin</a></nav>
         </div>
     </header>
 
@@ -19,26 +19,101 @@
         <div id="loading" class="loading">Loading...</div>
         <div id="post"></div>
         <div id="error" style="display:none"></div>
+        <div id="comments-section" style="display:none">
+            <h2 class="section-title">Comments</h2>
+            <div id="comments-list"></div>
+            <div id="comment-form" class="comment-form">
+                <h3>Leave a comment</h3>
+                <div id="comment-error" class="alert alert-danger" style="display:none"></div>
+                <div id="comment-success" class="alert alert-success" style="display:none"></div>
+                <div class="form-group">
+                    <label for="comment-name">Name</label>
+                    <input type="text" id="comment-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="comment-content">Comment</label>
+                    <textarea id="comment-content" rows="4" required></textarea>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="handleSubmitComment()">Post Comment</button>
+            </div>
+        </div>
     </main>
 
     <script src="assets/js/api.js"></script>
     <script>
+        let currentSlug = null;
+
         function formatDate(dateStr) {
             return new Date(dateStr).toLocaleDateString('en-US', {
                 year: 'numeric', month: 'long', day: 'numeric'
             });
         }
 
+        function formatDateTime(dateStr) {
+            return new Date(dateStr).toLocaleString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        async function loadComments(slug) {
+            try {
+                const comments = await getComments(slug);
+                const container = document.getElementById('comments-list');
+                if (comments.length === 0) {
+                    container.innerHTML = '<p style="color:#888;margin-bottom:16px">No comments yet. Be the first!</p>';
+                    return;
+                }
+                container.innerHTML = comments.map(c => `
+                    <div class="comment-card">
+                        <div class="comment-header">
+                            <strong>${c.name}</strong>
+                            <span class="meta">${formatDateTime(c.created_at)}</span>
+                        </div>
+                        <div class="comment-body">${c.content}</div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('comments-list').innerHTML = '';
+            }
+        }
+
+        async function handleSubmitComment() {
+            const name = document.getElementById('comment-name').value;
+            const content = document.getElementById('comment-content').value;
+            const errorEl = document.getElementById('comment-error');
+            const successEl = document.getElementById('comment-success');
+
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            if (!name || !content) {
+                errorEl.textContent = 'Name and comment are required.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                await submitComment(currentSlug, { name, content });
+                document.getElementById('comment-name').value = '';
+                document.getElementById('comment-content').value = '';
+                successEl.textContent = 'Comment submitted for approval.';
+                successEl.style.display = 'block';
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.style.display = 'block';
+            }
+        }
+
         async function loadPost() {
             const params = new URLSearchParams(window.location.search);
-            const slug = params.get('slug');
-            if (!slug) {
+            currentSlug = params.get('slug');
+            if (!currentSlug) {
                 document.getElementById('loading').textContent = 'No post specified.';
                 return;
             }
 
             try {
-                const post = await getPost(slug);
+                const post = await getPost(currentSlug);
                 document.getElementById('loading').style.display = 'none';
                 document.title = post.title;
                 document.getElementById('post').innerHTML = `
@@ -49,6 +124,8 @@
                         <div class="body">${post.content}</div>
                     </article>
                 `;
+                document.getElementById('comments-section').style.display = 'block';
+                loadComments(currentSlug);
             } catch (err) {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';

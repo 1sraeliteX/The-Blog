@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-left"><span class="header-date" id="headerDate"></span></div>
+            <div class="header-center"><h1><a href="/">My Blog</a></h1></div>
+            <div class="header-right"><nav><a href="/admin/dashboard.html">Admin</a></nav></div>
+        </div>
+    </header>
+
+    <main class="container">
+        <a href="/" class="back-link">&larr; Back to all posts</a>
+        <article class="post-content">
+            <h1>Privacy Policy</h1>
+            <p class="meta">Last updated: June 22, 2026</p>
+
+            <div class="body">
+                <h2>Information We Collect</h2>
+                <p>When you leave a comment on our blog, we collect your name and the content of your comment. We do not collect your email address.</p>
+
+                <h2>How We Use Your Information</h2>
+                <p>Your name and comment are displayed publicly on the blog post page after an administrator approves them. We use this information solely for the purpose of enabling reader discussions.</p>
+
+                <h2>Cookies</h2>
+                <p>We use minimal cookies essential for the admin authentication system (Laravel Sanctum). No tracking or analytics cookies are used at this time.</p>
+
+                <h2>Data Storage</h2>
+                <p>All data is stored in a SQLite database on our server. We do not share, sell, or transfer your data to third parties.</p>
+
+                <h2>Your Rights</h2>
+                <p>You may request the removal of your comment at any time by contacting the site administrator. We will comply within a reasonable timeframe.</p>
+
+                <h2>Changes to This Policy</h2>
+                <p>We may update this privacy policy from time to time. Changes will be posted on this page with an updated date.</p>
+
+                <h2>Contact</h2>
+                <p>If you have questions about this policy, please reach out via the admin dashboard or contact the site owner directly.</p>
+            </div>
+        </article>
+    </main>
+
+    <script>document.getElementById('headerDate').textContent = (d => {
+        const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const day = d.getDate();
+        const suffix = day > 3 && day < 21 ? 'th' : ['st','nd','rd'][day % 10 - 1] || 'th';
+        return days[d.getDay()] + ', ' + day + suffix + ' ' + months[d.getMonth()] + ', ' + d.getFullYear();
+    })(new Date());</script>
+</body>
+</html>

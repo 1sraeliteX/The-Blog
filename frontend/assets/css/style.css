@@ -28,8 +28,30 @@ header {
     margin-bottom: 40px;
 }
 
+header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+header .header-left {
+    flex: 1;
+    text-align: left;
+}
+
+header .header-center {
+    flex: 1;
+    text-align: center;
+}
+
+header .header-right {
+    flex: 1;
+    text-align: right;
+}
+
 header h1 {
     font-size: 1.8rem;
+    margin: 0;
 }
 
 header h1 a {
@@ -37,8 +59,13 @@ header h1 a {
     text-decoration: none;
 }
 
-header nav {
-    margin-top: 10px;
+header .header-date {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+header nav a {
+    font-size: 0.9rem;
 }
 
 header nav a {
@@ -431,4 +458,20 @@ header nav a:hover {
     color: #444;
     font-size: 0.9rem;
     line-height: 1.5;
+}
+
+.share-section {
+    margin: 32px 0;
+    padding-top: 16px;
+    border-top: 2px solid #e0e0e0;
+}
+
+.share-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.share-buttons .btn {
+    font-size: 0.9rem;
 }

@@ -14,8 +14,7 @@ class AdminPostController extends Controller
     public function index(): JsonResponse
     {
         $posts = Post::with('author:id,name')
-            ->orderBy('published_at', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->orderByRaw('COALESCE(published_at, created_at) desc')
             ->get();
 
         return response()->json($posts);

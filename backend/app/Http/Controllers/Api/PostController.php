@@ -12,7 +12,7 @@ class PostController extends Controller
     {
         $posts = Post::where('is_published', true)
             ->with('author:id,name')
-            ->orderBy('published_at', 'desc')
+            ->orderByRaw('COALESCE(published_at, created_at) desc')
             ->paginate(10);
 
         return response()->json($posts);
